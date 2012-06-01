@@ -71,8 +71,10 @@
     {
       this.playfield = playfield;
       this.color;
-      this.x = 10;
-      this.y = 10;      
+      this.tail = new Array();
+      this.tail.push(new Point(10,10));
+      this.maxlength = 10;
+      
       
       this.draw = playerdraw;
       this.move = playermove;
@@ -81,28 +83,44 @@
       this.moveleft = playermoveleft;
       this.moveright = playermoveright;
       this.setcolor = playersetcolor;
+      this.setmaxlength = playersetmaxlength;
+      this.head = playerhead;
 
       this.setcolor("rgb(255,255,255)");
     }
     
+    function playerhead()
+    {
+      return this.tail[this.tail.length-1];
+    }
+    
+    function playersetmaxlength(maxlength)
+    {
+      this.maxlength = maxlength;
+    }
+    
     function playerdraw()
     {
-      this.playfield.drawblock(this.x, this.y, this.color);
+      this.playfield.drawblock(this.head().x, this.head().y, this.color);
     }
 
     function playermove(x, y)
     {
-
       this.playfield.cleararea(0,0,80,2);    
       this.playfield.context.fillStyle = "rgb(255,255,255)";
       this.playfield.context.font = "18px monospace bold";
       this.playfield.context.textBaseline = 'bottom';
-      this.playfield.context.fillText("oldx "+this.x+" oldy "+this.y+" x "+x+" y "+y, 20, 20-1);
-    
-      this.playfield.clearblock(this.x, this.y);
-      this.x = this.x + x;
-      this.y = this.y + y;
-      this.playfield.drawblock(this.x, this.y, this.color);
+      this.playfield.context.fillText("oldx "+this.head().x+" oldy "+this.head().y+" x "+x+" y "+y+" len "+this.tail.length+" max "+this.maxlength, 20, 20-1);
+
+      this.tail.push(new Point(this.head().x+x, this.head().y+y));
+      
+      while (this.tail.length > this.maxlength)
+      {
+        butt = this.tail.shift();
+        this.playfield.clearblock(butt.x, butt.y);
+      }
+
+      this.playfield.drawblock(this.head().x, this.head().y, this.color);
     }
     
     function playermoveup()
@@ -186,8 +204,8 @@
     
     function playfielddrawblock(x, y, color)
     {
-      this.context.fillStyle = color;  
-      this.context.fillRect (x*10, y*10, 10, 10);
+      this.context.fillStyle = color;
+      this.context.fillRect(x*10, y*10, 10, 10);
     }
 
 
@@ -231,6 +249,12 @@
           this.walls[x][y]=false;
         }
       }
+    }
+    
+    function Point(x, y)
+    {
+      this.x = x || 0;
+      this.y = y || 0;
     }
 
 
