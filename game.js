@@ -20,9 +20,6 @@
       game.wallvline(0,2,49);
       game.wallvline(79,2,49);
 
-      game.redrawall();
-     
-      game.printtext(0,1,"012345678901234567890");
 
       globals_a.game = game;
       
@@ -30,6 +27,15 @@
       // when initializing player but it doesn't work
       // our buffer is not ready yet
       game.placeplayer(player);
+      placerandompellet(game);
+      placerandompellet(game);
+      placerandompellet(game);
+      placerandompellet(game);
+      placerandompellet(game);
+
+      game.redrawall();
+     
+      game.printtext(0,1,"012345678901234567890");
 
 
       window.addEventListener('keydown',keylistener,true);
@@ -63,7 +69,7 @@
       this.HEIGHT = 50
       this.XRES = this.canvas.width/this.WIDTH;
       this.YRES = this.canvas.height/this.HEIGHT;
-      this.pellet = new pellet(this, 40, 40, 1);
+      this.pellets = new Array();
 
       this.backgroundcolor;
       this.wallcolor;
@@ -73,6 +79,7 @@
       
       this.WALL = -2;
       this.BACKGROUND = -1;
+      this.PELLET = -3;
 
       this.tick = playfieldtick;
 
@@ -81,6 +88,9 @@
       this.createplayer = playfieldcreateplayer;
       this.placeplayer = playfieldplaceplayer;
       this.removeplayer = playfieldremoveplayer;
+
+      this.placepellet = playfieldplacepellet;
+      this.removepelletat = playfieldremovepelletat;
 
       this.setbackgroundcolor = playfieldsetbackgroundcolor;
       this.setwallcolor = playfieldsetwallcolor;
@@ -92,8 +102,7 @@
       this.wallhline = playfieldwallhline;
       this.wallvline = playfieldwallvline;
       this.walblock = playfieldwallblock;
-      
-      
+            
       this.keylistener = playfieldkeylistener;
 
       this.clearfield();
@@ -121,7 +130,37 @@
           break;
       }
     }
-
+    
+    function playfieldplacepellet(pellet)
+    {
+      if ((this.buffer[pellet.getx()][pellet.getyupper()] == this.BACKGROUND) && (this.buffer[pellet.getx()][pellet.getylower()] == this.BACKGROUND))
+      {
+        this.buffer[pellet.getx()][pellet.getyupper()] = this.PELLET;
+        this.buffer[pellet.getx()][pellet.getylower()] = this.PELLET;
+        this.pellets.push(pellet);
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+        
+    function playfieldremovepelletat(x,y)
+    {
+      for (i=0;i<this.pellets.length;i++)
+      {
+        if ((this.pellets[i].getx() == x ) && 
+           ((this.pellets[i].getylower() == y) || (this.pellets[i].getyupper() == y )))
+        {
+          this.buffer[this.pellets[i].getx()][this.pellets[i].getyupper()] = this.BACKGROUND;
+          this.buffer[this.pellets[i].getx()][this.pellets[i].getylower()] = this.BACKGROUND;
+          this.redrawblock(this.pellets[i].getx(),this.pellets[i].getyupper());
+          this.redrawblock(this.pellets[i].getx(),this.pellets[i].getylower());
+          this.pellets.splice(i,1);
+        }
+      }
+    }
 
     function playfieldcreateplayer()
     {
@@ -135,15 +174,25 @@
     {
       x = player.head().x;
       y = player.head().y;
-      if (this.buffer[x][y] != this.BACKGROUND)
+      switch (this.buffer[x][y])
       {
-        alert("bang!");
-        //this.players[player.id].direction = new Point(0,0)
-      }
-      else
-      {
-        // this is where we should collision detect of course!!!
-        this.buffer[x][y] = player.id;
+        case this.BACKGROUND:
+          this.buffer[x][y] = player.id;
+          break;
+        case this.WALL:
+          alert("bang!");
+          break;
+        case this.PELLET:
+          alert("yum!");
+          this.removepelletat(x,y);
+          this.buffer[x][y] = player.id;
+          player.maxlength+=10;
+          placerandompellet(this);
+          break;
+        default:
+          alert("bonk!");
+          break;
+          
       }
       this.redrawblock(x,y);
     }
@@ -160,6 +209,12 @@
       {
         this.players[i].tick();
       }
+      // this update should be done elsewhere and more selectivly?
+      for (i=0;i<this.pellets.length;i++)
+      {
+        this.pellets[i].draw();
+      }
+
     }
     
     function playfieldredrawall()
@@ -180,7 +235,6 @@
 
     function playfieldredrawblock(x, y)
     {
-      this.pellet.draw();
       var color;
       switch (this.buffer[x][y])
       {
@@ -189,6 +243,10 @@
           break;
         case this.WALL:
           color = this.wallcolor;
+          break;
+      //temporary code to make pellets stand out more
+        case this.PELLET:
+          color = "rgb(0,0,0)";
           break;
         default:
           color = this.players[this.buffer[x][y]].color;
@@ -246,7 +304,7 @@
       this.context.fillStyle = "rgb(255,255,255)";
       this.context.font = ""+this.YRES*2-2+"px monospace bold";
       this.context.textBaseline = 'bottom';
-      this.context.fillText(text, x*this.XRES, (y+1)*this.YRES-1);
+      this.context.fillText(text, x*this.XRES+1, (y+1)*this.YRES-1);
     }
     
     function player(playfield, id)
@@ -289,7 +347,27 @@
     {
       this.playfield.redrawarea(0,0,80,2);    
       this.playfield.printtext(2,1,"oldx "+this.head().x+" oldy "+this.head().y+" x "+x+" y "+y+" len "+this.tail.length+" max "+this.maxlength);
-      this.tail.push(new Point(this.head().x+this.direction.x, this.head().y+this.direction.y));
+      newx = this.head().x+this.direction.x;
+      newy = this.head().y+this.direction.y
+      while (newx >= this.playfield.WIDTH)
+      {
+        newx -= this.playfield.WIDTH;
+      }
+      while (newx < 0)
+      {
+        newx += this.playfield.WIDTH;
+      }
+      while (newy >= this.playfield.HEIGHT)
+      {
+        newy -= this.playfield.HEIGHT - 2;
+      }
+      while (newy < 2)
+      {
+        newy += this.playfield.HEIGHT - 2;
+      }
+
+      
+      this.tail.push(new Point(newx, newy));
       
       while (this.tail.length > this.maxlength)
       {
@@ -323,6 +401,22 @@
       this.color = color;
     }
     
+    function placerandompellet(playfield)
+    {
+      pelleto = new pellet(playfield,
+                          Math.floor(Math.random()*playfield.WIDTH),
+                          Math.floor(Math.random()*(playfield.HEIGHT-2))+2,
+                          Math.floor(Math.random()*10));
+      while (!playfield.placepellet(pelleto))
+      {
+        pelleto = new pellet(playfield,
+                            Math.floor(Math.random()*playfield.WIDTH),
+                            Math.floor(Math.random()*(playfield.HEIGHT-2))+2,
+                            Math.floor(Math.random()*10));
+      }
+      return pelleto;
+    }
+
     function pellet(playfield, x, y, value)
     {
       this.playfield = playfield
@@ -333,19 +427,28 @@
       this.getx = pelletgetx;
       this.getylower = pelletgetylower;
       this.getyupper = pelletgetyupper;
+      this.getyother = pelletgetyother;
       this.draw = pelletdraw;
     }
     
+    
     function pelletdraw()
     {
+      this.playfield.redrawblock(this.getx(), this.getyupper());
+      this.playfield.redrawblock(this.getx(), this.getylower());
       this.playfield.printtext(this.getx(), this.getylower(), ""+this.value);
     }
 
+    function pelletgetx()
+    {
+      return this.x;
+    }
+    
     function pelletgetylower()
     {
       if (this.y%2 == 0)
       {
-        return this.y-1;
+        return this.y+1;
       }
       else
       {
@@ -360,14 +463,26 @@
       }
       else
       {
-        return this.y+1;
+        return this.y-1;
       }    
     }
-    function pelletgetx()
+
+    function pelletgetyother(y)
     {
-      return this.x;
+      if (this.getyupper == y)
+      {
+        return this.getylower();
+      }
+      else if (this.getylower == y)
+      {
+        return this.getyupper();
+      }
+      else
+      {
+        return y;
+      }
     }
-    
+
     function Point(x, y)
     {
       this.x = x || 0;
