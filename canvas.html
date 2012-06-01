@@ -1,0 +1,243 @@
+<html>  
+     <head>  
+      <script type="application/javascript">  
+
+    globals_a = new holder();
+
+    function init()
+    {
+      var canvas = document.getElementById("canvas");  
+      var ctx = canvas.getContext("2d");  
+
+      
+      game = new playfield(ctx);
+      player = new player(game);
+  
+      game.setbackgroundcolor("rgb(0,0,200)");
+      game.setwallcolor("rgb(255,0,0)");
+      game.wallhline(0,2,79);
+      game.wallhline(0,49,79);
+      game.wallvline(0,2,49);
+      game.wallvline(79,2,49);
+
+      game.clearall();
+      player.draw();
+     
+      ctx.fillStyle = "rgb(255,255,255)";
+      ctx.font = "18px monospace bold";
+      ctx.textBaseline = 'bottom';
+      ctx.fillText("012345678901234567890", 0, 20-1);
+
+      globals_a.context = ctx;
+      globals_a.game = game;
+      globals_a.player = player;
+
+
+      window.addEventListener('keydown',keylistener,true);
+    }
+    
+    function periodic()
+    {
+    }
+
+    function holder()
+    {
+      this.context;
+      this.game;
+      this.player;
+    }
+        
+    function keylistener(evt)
+    {
+      switch (evt.keyCode)
+      {
+        case 38:  /* Up arrow was pressed */
+          globals_a.player.moveup();
+          break;
+        case 40:  /* Down arrow was pressed */
+          globals_a.player.movedown();
+          break;
+        case 37:  /* Left arrow was pressed */
+          globals_a.player.moveleft();
+          break;
+        case 39:  /* Right arrow was pressed */
+          globals_a.player.moveright();
+          break;
+      }
+    }
+
+    
+    function player(playfield)
+    {
+      this.playfield = playfield;
+      this.color;
+      this.x = 10;
+      this.y = 10;      
+      
+      this.draw = playerdraw;
+      this.move = playermove;
+      this.moveup = playermoveup;
+      this.movedown = playermovedown;
+      this.moveleft = playermoveleft;
+      this.moveright = playermoveright;
+      this.setcolor = playersetcolor;
+
+      this.setcolor("rgb(255,255,255)");
+    }
+    
+    function playerdraw()
+    {
+      this.playfield.drawblock(this.x, this.y, this.color);
+    }
+
+    function playermove(x, y)
+    {
+
+      this.playfield.cleararea(0,0,80,2);    
+      this.playfield.context.fillStyle = "rgb(255,255,255)";
+      this.playfield.context.font = "18px monospace bold";
+      this.playfield.context.textBaseline = 'bottom';
+      this.playfield.context.fillText("oldx "+this.x+" oldy "+this.y+" x "+x+" y "+y, 20, 20-1);
+    
+      this.playfield.clearblock(this.x, this.y);
+      this.x = this.x + x;
+      this.y = this.y + y;
+      this.playfield.drawblock(this.x, this.y, this.color);
+    }
+    
+    function playermoveup()
+    {
+      this.move(0,-1);
+    }
+    function playermovedown()
+    {
+      this.move(0,1);
+    }
+    function playermoveleft()
+    {
+      this.move(-1,0);
+    }
+    function playermoveright()
+    {
+      this.move(1,0);
+    }
+
+    
+    function playersetcolor(color)
+    {
+      this.color = color;
+    }
+
+    function playfield(context)
+    {
+      this.backgroundcolor;
+      this.wallcolor;
+      this.context;
+      this.walls;
+
+      this.context = context;
+      this.setbackgroundcolor = playfieldsetbackgroundcolor;
+      this.setwallcolor = playfieldsetwallcolor;
+      this.wallhline = playfieldwallhline;
+      this.wallvline = playfieldwallvline;
+      this.walblock = playfieldwallblock;
+      this.wallclear = playfieldwallclear;
+      this.clearall = playfieldclearall;
+      this.cleararea = playfieldcleararea;
+      this.clearblock = playfieldclearblock;
+      this.drawblock = playfielddrawblock;
+      
+      this.wallclear();
+      this.setbackgroundcolor("rgb(0,0,0)");
+      this.setwallcolor("rgb(255,255,255)");
+    }
+    
+    function playfieldclearall()
+    {
+      for(x=0;x<=80;x++)
+      {
+        for(y=0;y<=50;y++)
+        {
+          this.clearblock(x,y);
+        }
+      }
+    }
+
+    function playfieldcleararea(x, y, w, h)
+    {
+      for(xx=x;xx<=x+w;xx++)
+      {
+        for(yy=y;yy<=y+h;yy++)
+        {
+          this.clearblock(xx,yy);
+        }
+      }
+    }
+
+    function playfieldclearblock(x, y)
+    {
+      color = this.backgroundcolor;
+      if (this.walls[x][y])
+      {
+        color = this.wallcolor;
+      }
+      this.drawblock(x, y, color);
+    }
+    
+    function playfielddrawblock(x, y, color)
+    {
+      this.context.fillStyle = color;  
+      this.context.fillRect (x*10, y*10, 10, 10);
+    }
+
+
+    function playfieldsetbackgroundcolor(color)
+    {
+      this.backgroundcolor = color;
+    }
+    function playfieldsetwallcolor(color)
+    {
+      this.wallcolor = color;
+    }
+
+    function playfieldwallhline(x,y,len)
+    {
+      for (o=0;o<=len;o++)
+      {
+        this.walls[x+o][y] = true;
+      }
+    }
+    function playfieldwallvline(x, y, len)
+    {
+      for (o=0;o<=len;o++)
+      {
+        this.walls[x][y+o] = true;
+      }
+    }
+
+    function playfieldwallblock(x, y)
+    {
+      this.walls[x][y] = true;
+    }
+
+    function playfieldwallclear(x, y)
+    {
+      this.walls=new Array();
+      for(x=0;x<=80;x++)
+      {
+        this.walls[x] = new Array();
+        for(y=0;y<=50;y++)
+        {
+          this.walls[x][y]=false;
+        }
+      }
+    }
+
+
+      
+      </script>  
+     </head>  
+     <body onload="init()">  
+       <canvas id="canvas" width="800" height="500"></canvas>  
+     </body>  
+    </html>
