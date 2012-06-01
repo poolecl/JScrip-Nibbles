@@ -9,8 +9,7 @@
       var ctx = canvas.getContext("2d");  
 
       
-      game = new playfield(ctx);
-      game.redrawall();
+      game = new playfield(canvas);
       player = game.createplayer();
  
   
@@ -23,14 +22,9 @@
 
       game.redrawall();
      
-      ctx.fillStyle = "rgb(255,255,255)";
-      ctx.font = "18px monospace bold";
-      ctx.textBaseline = 'bottom';
-      ctx.fillText("012345678901234567890", 0, 20-1);
+      game.printtext(0,1,"012345678901234567890");
 
-      globals_a.context = ctx;
       globals_a.game = game;
-      globals_a.player = player;
       
       //i shoudl be able to do this inside player 
       // when initializing player but it doesn't work
@@ -50,38 +44,27 @@
 
     function holder()
     {
-      this.context;
       this.game;
-      this.player;
     }
         
     function keylistener(evt)
     {
-      switch (evt.keyCode)
-      {
-        case 38:  /* Up arrow was pressed */
-          globals_a.player.moveup();
-          break;
-        case 40:  /* Down arrow was pressed */
-          globals_a.player.movedown();
-          break;
-        case 37:  /* Left arrow was pressed */
-          globals_a.player.moveleft();
-          break;
-        case 39:  /* Right arrow was pressed */
-          globals_a.player.moveright();
-          break;
-      }
+      globals_a.game.keylistener(evt.keyCode);
     }
 
     
 
 
-    function playfield(context)
+    function playfield(canvas)
     {
-      this.context = context;
-      this.xres = 10;
-      this.yres = 10;
+      this.canvas = canvas;
+      this.context = canvas.getContext("2d");  
+      this.WIDTH = 80;
+      this.HEIGHT = 50
+      this.XRES = this.canvas.width/this.WIDTH;
+      this.YRES = this.canvas.height/this.HEIGHT;
+      this.pellet = new pellet(this, 40, 40, 1);
+
       this.backgroundcolor;
       this.wallcolor;
       this.context;
@@ -94,6 +77,7 @@
       this.tick = playfieldtick;
 
       this.clearfield = playfieldclearfield;
+      this.printtext = playfieldprinttext;
       this.createplayer = playfieldcreateplayer;
       this.placeplayer = playfieldplaceplayer;
       this.removeplayer = playfieldremoveplayer;
@@ -108,11 +92,36 @@
       this.wallhline = playfieldwallhline;
       this.wallvline = playfieldwallvline;
       this.walblock = playfieldwallblock;
+      
+      
+      this.keylistener = playfieldkeylistener;
 
       this.clearfield();
       this.setbackgroundcolor("rgb(0,0,0)");
       this.setwallcolor("rgb(255,255,255)");
     }
+
+    function playfieldkeylistener(keycode)
+    {
+    // this should be modified to
+    // not assume the player 0 in the future
+      switch (keycode)
+      {
+        case 38:  /* Up arrow was pressed */
+          this.players[0].moveup();
+          break;
+        case 40:  /* Down arrow was pressed */
+          this.players[0].movedown();
+          break;
+        case 37:  /* Left arrow was pressed */
+          this.players[0].moveleft();
+          break;
+        case 39:  /* Right arrow was pressed */
+          this.players[0].moveright();
+          break;
+      }
+    }
+
 
     function playfieldcreateplayer()
     {
@@ -155,7 +164,7 @@
     
     function playfieldredrawall()
     {
-      this.redrawarea(0,0,80,50);
+      this.redrawarea(0,0,this.WIDTH,this.HEIGHT);
     }
 
     function playfieldredrawarea(x, y, w, h)
@@ -171,6 +180,7 @@
 
     function playfieldredrawblock(x, y)
     {
+      this.pellet.draw();
       var color;
       switch (this.buffer[x][y])
       {
@@ -186,7 +196,7 @@
           
       }
       this.context.fillStyle = color;
-      this.context.fillRect(x*this.xres, y*this.yres, this.xres, this.yres);
+      this.context.fillRect(x*this.XRES, y*this.YRES, this.XRES, this.YRES);
     }
 
     function playfieldsetbackgroundcolor(color)
@@ -221,15 +231,24 @@
     function playfieldclearfield()
     {
       this.buffer=new Array();
-      for(x=0;x<=80;x++)
+      for(x=0;x<=this.WIDTH;x++)
       {
         this.buffer[x] = new Array();
-        for(y=0;y<=50;y++)
+        for(y=0;y<=this.HEIGHT;y++)
         {
           this.buffer[x][y]=this.BACKGROUND;
         }
       }
     }
+    
+    function playfieldprinttext(x,y,text)
+    {
+      this.context.fillStyle = "rgb(255,255,255)";
+      this.context.font = ""+this.YRES*2-2+"px monospace bold";
+      this.context.textBaseline = 'bottom';
+      this.context.fillText(text, x*this.XRES, (y+1)*this.YRES-1);
+    }
+    
     function player(playfield, id)
     {
       this.playfield = playfield;
@@ -269,11 +288,7 @@
     function playertick(x, y)
     {
       this.playfield.redrawarea(0,0,80,2);    
-      this.playfield.context.fillStyle = "rgb(255,255,255)";
-      this.playfield.context.font = "18px monospace bold";
-      this.playfield.context.textBaseline = 'bottom';
-      this.playfield.context.fillText("oldx "+this.head().x+" oldy "+this.head().y+" x "+x+" y "+y+" len "+this.tail.length+" max "+this.maxlength, 20, 20-1);
-
+      this.playfield.printtext(2,1,"oldx "+this.head().x+" oldy "+this.head().y+" x "+x+" y "+y+" len "+this.tail.length+" max "+this.maxlength);
       this.tail.push(new Point(this.head().x+this.direction.x, this.head().y+this.direction.y));
       
       while (this.tail.length > this.maxlength)
@@ -306,7 +321,53 @@
     function playersetcolor(color)
     {
       this.color = color;
-    }    
+    }
+    
+    function pellet(playfield, x, y, value)
+    {
+      this.playfield = playfield
+      this.x = x;
+      this.y = y;
+      this.value = value;
+      
+      this.getx = pelletgetx;
+      this.getylower = pelletgetylower;
+      this.getyupper = pelletgetyupper;
+      this.draw = pelletdraw;
+    }
+    
+    function pelletdraw()
+    {
+      this.playfield.printtext(this.getx(), this.getylower(), ""+this.value);
+    }
+
+    function pelletgetylower()
+    {
+      if (this.y%2 == 0)
+      {
+        return this.y-1;
+      }
+      else
+      {
+        return this.y;
+      }    
+    }
+    function pelletgetyupper()
+    {
+      if (this.y%2 == 0)
+      {
+        return this.y;
+      }
+      else
+      {
+        return this.y+1;
+      }    
+    }
+    function pelletgetx()
+    {
+      return this.x;
+    }
+    
     function Point(x, y)
     {
       this.x = x || 0;
