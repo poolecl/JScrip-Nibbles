@@ -34,10 +34,13 @@
 
 
       window.addEventListener('keydown',keylistener,true);
+      
+      setInterval(periodic, 100);
     }
     
     function periodic()
     {
+      globals_a.player.move();
     }
 
     function holder()
@@ -74,7 +77,7 @@
       this.tail = new Array();
       this.tail.push(new Point(10,10));
       this.maxlength = 10;
-      
+      this.direction = new Point(1,0);
       
       this.draw = playerdraw;
       this.move = playermove;
@@ -112,7 +115,7 @@
       this.playfield.context.textBaseline = 'bottom';
       this.playfield.context.fillText("oldx "+this.head().x+" oldy "+this.head().y+" x "+x+" y "+y+" len "+this.tail.length+" max "+this.maxlength, 20, 20-1);
 
-      this.tail.push(new Point(this.head().x+x, this.head().y+y));
+      this.tail.push(new Point(this.head().x+this.direction.x, this.head().y+this.direction.y));
       
       while (this.tail.length > this.maxlength)
       {
@@ -125,19 +128,19 @@
     
     function playermoveup()
     {
-      this.move(0,-1);
+      this.direction = new Point(0,-1);
     }
     function playermovedown()
     {
-      this.move(0,1);
+      this.direction = new Point(0,1);
     }
     function playermoveleft()
     {
-      this.move(-1,0);
+      this.direction = new Point(-1,0);
     }
     function playermoveright()
     {
-      this.move(1,0);
+      this.direction = new Point(1,0);
     }
 
     
